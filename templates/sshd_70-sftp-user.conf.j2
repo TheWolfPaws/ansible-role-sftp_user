@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+
+Match User {{ sftp_user_username }}
+    ForceCommand internal-sftp{{ ' -R' if sftp_user_readonly | bool else '' }}
+    DisableForwarding yes
+    PermitTTY no

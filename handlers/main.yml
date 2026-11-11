@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT
+---
+
+- name: Recharger sshd
+  ansible.builtin.systemd_service:
+    name: ssh.service
+    state: reloaded

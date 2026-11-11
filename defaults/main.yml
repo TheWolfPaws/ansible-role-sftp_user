@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: MIT
+---
+# defaults file for sftp_user
+sftp_user_username: ""
+sftp_user_system: true
+sftp_user_shell: /usr/sbin/nologin
+sftp_user_ssh_public_key: ""
+sftp_user_ssh_key_options: ""
+sftp_user_groups: []
+sftp_user_readonly: true
+sftp_user_read_paths: []
+sftp_user_permission_scope: rX

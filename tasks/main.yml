@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: MIT
+---
+# tasks file for sftp_user
+
+- name: Vérifier les variables du rôle
+  ansible.builtin.assert:
+    that:
+      - sftp_user_username | length > 0
+      - sftp_user_ssh_public_key | length > 0
+      - sftp_user_groups is not string
+      - sftp_user_groups is iterable
+      - sftp_user_read_paths is not string
+      - sftp_user_read_paths is iterable
+    fail_msg: >-
+      sftp_user_username et sftp_user_ssh_public_key doivent être renseignés ;
+      sftp_user_groups et sftp_user_read_paths doivent être des listes.
+    quiet: true
+
+- name: Installer les outils ACL
+  ansible.builtin.apt:
+    name: acl
+    cache_valid_time: 3600
+    state: present
+  when: sftp_user_read_paths | length > 0
+
+- name: Créer le compte
+  ansible.builtin.user:
+    name: "{{ sftp_user_username }}"
+    system: "{{ sftp_user_system }}"
+    create_home: true
+    groups: "{{ sftp_user_groups }}"
+    append: true
+    shell: "{{ sftp_user_shell }}"
+    password_lock: true
+
+- name: Ajouter la clef SSH
+  ansible.posix.authorized_key:
+    user: "{{ sftp_user_username }}"
+    key: "{{ sftp_user_ssh_public_key }}"
+    key_options: "{{ sftp_user_ssh_key_options }}"
+    exclusive: true
+
+- name: Installer le fragment sshd du compte
+  ansible.builtin.template:
+    src: sshd_70-sftp-user.conf.j2
+    dest: "/etc/ssh/sshd_config.d/70-sftp-user-{{ sftp_user_username }}.conf"
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Recharger sshd
+
+- name: Donner l'accès par ACL sur ce qui existe
+  ansible.posix.acl:
+    path: "{{ item }}"
+    etype: user
+    entity: "{{ sftp_user_username }}"
+    permissions: "{{ sftp_user_permission_scope }}"
+    recursive: true
+    state: present
+  loop: "{{ sftp_user_read_paths }}"
+
+- name: Donner l'accès par ACL sur ce qui sera créé
+  ansible.posix.acl:
+    path: "{{ item }}"
+    etype: user
+    entity: "{{ sftp_user_username }}"
+    permissions: "{{ sftp_user_permission_scope }}"
+    default: true
+    recursive: true
+    state: present
+  loop: "{{ sftp_user_read_paths }}"
