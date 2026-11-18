@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: MIT
+---
+# Retrait du compte : les ACL partent avant le compte, setfacl ne connaît plus son nom après.
+
+- name: Relever le compte
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ sftp_user_username }}"
+    fail_key: false
+
+- name: Retirer le fragment sshd du compte
+  ansible.builtin.file:
+    path: "/etc/ssh/sshd_config.d/70-sftp-user-{{ sftp_user_username }}.conf"
+    state: absent
+  notify: Recharger sshd
+
+- name: Installer les outils ACL
+  ansible.builtin.apt:
+    name: acl
+    cache_valid_time: 3600
+    state: present
+  when:
+    - sftp_user_read_paths | length > 0
+    - ansible_facts['getent_passwd'][sftp_user_username] is not none
+
+- name: Retirer l'accès par ACL sur ce qui existe
+  ansible.posix.acl:
+    path: "{{ item }}"
+    etype: user
+    entity: "{{ sftp_user_username }}"
+    recursive: true
+    state: absent
+  loop: "{{ sftp_user_read_paths }}"
+  when: ansible_facts['getent_passwd'][sftp_user_username] is not none
+
+- name: Retirer l'accès par ACL sur ce qui sera créé
+  ansible.posix.acl:
+    path: "{{ item }}"
+    etype: user
+    entity: "{{ sftp_user_username }}"
+    default: true
+    recursive: true
+    state: absent
+  loop: "{{ sftp_user_read_paths }}"
+  when: ansible_facts['getent_passwd'][sftp_user_username] is not none
+
+- name: Supprimer le compte et son dossier personnel
+  ansible.builtin.user:
+    name: "{{ sftp_user_username }}"
+    state: absent
+    remove: true

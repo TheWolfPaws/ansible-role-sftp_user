@@ -16,10 +16,11 @@ Role Variables
 
 | Variable | Default | Description |
 |---|---|---|
+| `sftp_user_state` | `present` | `absent` removes the sshd fragment, the ACL entries of the account on `sftp_user_read_paths`, then the account and its home directory. |
 | `sftp_user_username` | `""` | Name of the account. Required. |
+| `sftp_user_ssh_public_key` | `""` | Public key allowed to connect. Required when `sftp_user_state` is `present`. |
 | `sftp_user_system` | `true` | Create a system account. Cannot be changed once the account exists. |
 | `sftp_user_shell` | `/usr/sbin/nologin` | Login shell of the account. |
-| `sftp_user_ssh_public_key` | `""` | Public key allowed to connect. Required. |
 | `sftp_user_ssh_key_options` | `""` | Options written before the key in `authorized_keys`, for example a `from=` restriction. |
 | `sftp_user_groups` | `[]` | Supplementary groups. Add here the group your sshd requires in `AllowGroups`, if any. |
 | `sftp_user_readonly` | `true` | Run the SFTP server in read-only mode (`internal-sftp -R`). |

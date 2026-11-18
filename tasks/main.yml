@@ -5,16 +5,26 @@
 - name: Vérifier les variables du rôle
   ansible.builtin.assert:
     that:
+      - sftp_user_state in ['present', 'absent']
       - sftp_user_username | length > 0
-      - sftp_user_ssh_public_key | length > 0
+      - sftp_user_state == 'absent' or sftp_user_ssh_public_key | length > 0
       - sftp_user_groups is not string
       - sftp_user_groups is iterable
       - sftp_user_read_paths is not string
       - sftp_user_read_paths is iterable
     fail_msg: >-
-      sftp_user_username et sftp_user_ssh_public_key doivent être renseignés ;
+      sftp_user_state vaut present ou absent ; sftp_user_username doit être renseigné,
+      et sftp_user_ssh_public_key aussi quand l'état vaut present ;
       sftp_user_groups et sftp_user_read_paths doivent être des listes.
     quiet: true
+
+- name: Retirer le compte et ses accès
+  ansible.builtin.import_tasks: absent.yml
+  when: sftp_user_state == 'absent'
+
+- name: Terminer le rôle après le retrait du compte
+  ansible.builtin.meta: end_role
+  when: sftp_user_state == 'absent'
 
 - name: Installer les outils ACL
   ansible.builtin.apt:
